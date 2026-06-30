@@ -13,7 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Copy, Check, Sparkles, Mail, ClipboardList, CalendarClock, MessageCircle, ShieldAlert, BookOpen, Send } from "lucide-react";
+import { Loader2, Copy, Check, Sparkles, Mail, ClipboardList, CalendarClock, MessageCircle, ShieldAlert, BookOpen, Send, Sun, Moon, Contrast, ThumbsUp, ThumbsDown, Heart, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { generateEmail, summarizeMeeting, planTasks } from "@/lib/ai.functions";
@@ -98,6 +98,7 @@ function Index() {
               <h1 className="text-base font-semibold leading-tight truncate">{current.title}</h1>
               <p className="text-xs text-muted-foreground truncate">{current.desc}</p>
             </div>
+            <ThemeSwitcher />
             <DocsDialog />
           </header>
 
