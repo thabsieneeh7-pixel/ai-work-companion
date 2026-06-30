@@ -13,7 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Copy, Check, Sparkles, Mail, ClipboardList, CalendarClock, MessageCircle, ShieldAlert, BookOpen, Send, Sun, Moon, Contrast, ThumbsUp, ThumbsDown, Heart, PartyPopper } from "lucide-react";
+import { Loader2, Copy, Check, Sparkles, Mail, ClipboardList, CalendarClock, MessageCircle, ShieldAlert, BookOpen, Send, Sun, Moon, Contrast, ThumbsUp, ThumbsDown, Heart, PartyPopper, LayoutDashboard, TrendingUp, Zap, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { generateEmail, summarizeMeeting, planTasks } from "@/lib/ai.functions";
@@ -35,17 +35,31 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-function Index() {
-  type View = "email" | "meeting" | "planner" | "chat";
-  const [view, setView] = useState<View>("email");
+type View = "dashboard" | "email" | "meeting" | "planner" | "chat";
 
-  const items: { id: View; title: string; icon: typeof Mail; desc: string }[] = [
-    { id: "email", title: "Email Generator", icon: Mail, desc: "Draft a polished email." },
-    { id: "meeting", title: "Meeting Summarizer", icon: ClipboardList, desc: "Turn notes into action items." },
-    { id: "planner", title: "Task Planner", icon: CalendarClock, desc: "Prioritize and time-block your day." },
-    { id: "chat", title: "Workplace Chat", icon: MessageCircle, desc: "Ask anything, get a quick answer." },
-  ];
-  const current = items.find((i) => i.id === view)!;
+interface ToolItem {
+  id: Exclude<View, "dashboard">;
+  title: string;
+  icon: typeof Mail;
+  desc: string;
+  color: string;
+}
+
+const tools: ToolItem[] = [
+  { id: "email", title: "Email Generator", icon: Mail, desc: "Draft a polished email.", color: "bg-sky-500/10 text-sky-400" },
+  { id: "meeting", title: "Meeting Summarizer", icon: ClipboardList, desc: "Turn notes into action items.", color: "bg-amber-500/10 text-amber-400" },
+  { id: "planner", title: "Task Planner", icon: CalendarClock, desc: "Prioritize and time-block your day.", color: "bg-emerald-500/10 text-emerald-400" },
+  { id: "chat", title: "Workplace Chat", icon: MessageCircle, desc: "Ask anything, get a quick answer.", color: "bg-violet-500/10 text-violet-400" },
+];
+
+const sidebarItems: { id: View; title: string; icon: typeof LayoutDashboard }[] = [
+  { id: "dashboard", title: "Dashboard", icon: LayoutDashboard },
+  ...tools.map((t) => ({ id: t.id as View, title: t.title, icon: t.icon })),
+];
+
+function Index() {
+  const [view, setView] = useState<View>("dashboard");
+  const current = sidebarItems.find((i) => i.id === view)!;
 
   return (
     <SidebarProvider>
@@ -65,10 +79,10 @@ function Index() {
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Tools</SidebarGroupLabel>
+              <SidebarGroupLabel>Menu</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {items.map((it) => (
+                  {sidebarItems.map((it) => (
                     <SidebarMenuItem key={it.id}>
                       <SidebarMenuButton
                         isActive={view === it.id}
@@ -96,19 +110,22 @@ function Index() {
             <SidebarTrigger />
             <div className="flex-1 min-w-0">
               <h1 className="text-base font-semibold leading-tight truncate">{current.title}</h1>
-              <p className="text-xs text-muted-foreground truncate">{current.desc}</p>
+              {view !== "dashboard" && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {tools.find((t) => t.id === view)?.desc}
+                </p>
+              )}
             </div>
             <ThemeSwitcher />
             <DocsDialog />
           </header>
 
-          <main className="flex-1 px-4 sm:px-8 py-6 sm:py-10">
-            <div className="mx-auto w-full max-w-3xl">
-              {view === "email" && <EmailTab />}
-              {view === "meeting" && <MeetingTab />}
-              {view === "planner" && <PlannerTab />}
-              {view === "chat" && <ChatTab />}
-            </div>
+          <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8">
+            {view === "dashboard" && <Dashboard onSelectTool={setView} />}
+            {view === "email" && <EmailTab />}
+            {view === "meeting" && <MeetingTab />}
+            {view === "planner" && <PlannerTab />}
+            {view === "chat" && <ChatTab />}
           </main>
 
           <ResponsibleAINotice />
@@ -116,6 +133,84 @@ function Index() {
         </div>
       </div>
     </SidebarProvider>
+  );
+}
+
+// ============== DASHBOARD ==============
+function Dashboard({ onSelectTool }: { onSelectTool: (v: View) => void }) {
+  const stats = [
+    { label: "Emails Drafted", value: "24", change: "+12%", icon: Mail, tone: "text-sky-400" },
+    { label: "Meetings", value: "8", change: "+3 this week", icon: ClipboardList, tone: "text-amber-400" },
+    { label: "Tasks Planned", value: "47", change: "+8 today", icon: CalendarClock, tone: "text-emerald-400" },
+    { label: "Chat Sessions", value: "156", change: "+24%", icon: MessageCircle, tone: "text-violet-400" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>Welcome back</h2>
+          <p className="text-sm text-muted-foreground mt-1">Here is what is happening with your productivity today.</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <Card key={s.label} className="border-border/60">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{s.label}</p>
+                  <p className="text-2xl font-bold">{s.value}</p>
+                </div>
+                <div className={`h-9 w-9 rounded-lg grid place-items-center ${s.tone.replace("text-", "bg-").replace("400", "500/10")} ${s.tone}`}>
+                  <s.icon className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-1 text-xs">
+                <TrendingUp className="h-3 w-3 text-emerald-400" />
+                <span className="text-emerald-400 font-medium">{s.change}</span>
+                <span className="text-muted-foreground">vs last week</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Tools Grid */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>Quick Access</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {tools.map((tool) => (
+            <Card
+              key={tool.id}
+              className="cursor-pointer hover:border-primary/40 transition-all hover:shadow-[var(--shadow-elegant)] group"
+              onClick={() => onSelectTool(tool.id)}
+            >
+              <CardContent className="p-5 flex items-start gap-4">
+                <div className={`h-10 w-10 shrink-0 rounded-xl grid place-items-center ${tool.color}`}>
+                  <tool.icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-semibold group-hover:text-primary transition-colors">{tool.title}</h4>
+                  <p className="text-sm text-muted-foreground mt-0.5">{tool.desc}</p>
+                  <div className="mt-3 flex items-center gap-1 text-xs text-primary font-medium">
+                    <Zap className="h-3 w-3" />
+                    Open tool
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -130,7 +225,7 @@ function DocsDialog() {
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>About this assistant</DialogTitle>
-          <DialogDescription>What it does, how it's built, and known risks.</DialogDescription>
+          <DialogDescription>What it does, how it is built, and known risks.</DialogDescription>
         </DialogHeader>
         <div className="space-y-5 text-sm">
           <section>
@@ -150,7 +245,7 @@ function DocsDialog() {
             <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
               <li>A shared system prompt enforces a professional, concise voice and forbids inventing dates, owners, or numbers (uses "Not specified" instead).</li>
               <li>Each feature has its own task template that fixes the section headings and output format, so results are predictable.</li>
-              <li>Tone & audience parameters are passed as explicit fields, not buried in prose, so the model follows them reliably.</li>
+              <li>Tone &amp; audience parameters are passed as explicit fields, not buried in prose, so the model follows them reliably.</li>
             </ul>
           </section>
           <section>
@@ -295,7 +390,7 @@ function OutputPanel({ text, loading }: { text: string; loading: boolean }) {
     setTimeout(() => setCopied(false), 1500);
   };
   return (
-    <Card className="mt-6">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">Output</CardTitle>
         <Button variant="outline" size="sm" onClick={onCopy} disabled={!text || loading} className="gap-2">
@@ -352,71 +447,73 @@ function EmailTab() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Smart Email Generator</CardTitle>
-        <CardDescription>Fill the fields below to draft a professional email.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Recipient name</Label>
-            <Input value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} placeholder="e.g. Priya Shah" />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <Card>
+        <CardHeader>
+          <CardTitle>Smart Email Generator</CardTitle>
+          <CardDescription>Fill the fields below to draft a professional email.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Recipient name</Label>
+              <Input value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} placeholder="e.g. Priya Shah" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Audience</Label>
+              <Select value={form.audience} onValueChange={(v) => setForm({ ...form, audience: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Client">Client</SelectItem>
+                  <SelectItem value="Manager">Manager</SelectItem>
+                  <SelectItem value="Team">Team</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Purpose</Label>
+              <Select value={form.purpose} onValueChange={(v) => setForm({ ...form, purpose: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="request">Request</SelectItem>
+                  <SelectItem value="follow-up">Follow-up</SelectItem>
+                  <SelectItem value="apology">Apology</SelectItem>
+                  <SelectItem value="invitation">Invitation</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tone</Label>
+              <Select value={form.tone} onValueChange={(v) => setForm({ ...form, tone: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Formal">Formal</SelectItem>
+                  <SelectItem value="Informal">Informal</SelectItem>
+                  <SelectItem value="Persuasive">Persuasive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Audience</Label>
-            <Select value={form.audience} onValueChange={(v) => setForm({ ...form, audience: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Client">Client</SelectItem>
-                <SelectItem value="Manager">Manager</SelectItem>
-                <SelectItem value="Team">Team</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Key points</Label>
+            <Textarea rows={5} value={form.keyPoints} onChange={(e) => setForm({ ...form, keyPoints: e.target.value })} placeholder="What should the email cover?" />
           </div>
           <div className="space-y-1.5">
-            <Label>Purpose</Label>
-            <Select value={form.purpose} onValueChange={(v) => setForm({ ...form, purpose: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="request">Request</SelectItem>
-                <SelectItem value="follow-up">Follow-up</SelectItem>
-                <SelectItem value="apology">Apology</SelectItem>
-                <SelectItem value="invitation">Invitation</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Deadline / date (optional)</Label>
+            <Input value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} placeholder="e.g. Friday this week" />
           </div>
-          <div className="space-y-1.5">
-            <Label>Tone</Label>
-            <Select value={form.tone} onValueChange={(v) => setForm({ ...form, tone: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Formal">Formal</SelectItem>
-                <SelectItem value="Informal">Informal</SelectItem>
-                <SelectItem value="Persuasive">Persuasive</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={submit} disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Generate Email
+            </Button>
+            <Button variant="ghost" onClick={() => setForm(EMAIL_SAMPLE)} disabled={loading}>Sample Input</Button>
           </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Key points</Label>
-          <Textarea rows={5} value={form.keyPoints} onChange={(e) => setForm({ ...form, keyPoints: e.target.value })} placeholder="What should the email cover?" />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Deadline / date (optional)</Label>
-          <Input value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} placeholder="e.g. Friday this week" />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={submit} disabled={loading}>
-            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Generate Email
-          </Button>
-          <Button variant="ghost" onClick={() => setForm(EMAIL_SAMPLE)} disabled={loading}>Sample Input</Button>
-        </div>
-        <OutputPanel text={output} loading={loading} />
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      <OutputPanel text={output} loading={loading} />
+    </div>
   );
 }
 
@@ -428,7 +525,7 @@ Attendees: Sarah (PM), Diego (Eng), Mei (Design), Tom (QA)
 - Diego flagged a risk: the auth migration is blocked on the vendor key rotation, expected by Oct 22.
 - Decision: we will ship the read-only dashboard first and gate write-features behind a flag.
 - Mei will deliver the updated Figma prototype by Oct 18.
-- Tom raised that regression coverage for billing flows is low; he'll draft a test plan this week.
+- Tom raised that regression coverage for billing flows is low; he will draft a test plan this week.
 - Open question: do we need legal review for the new export feature? Sarah to confirm with Counsel.`;
 
 function MeetingTab() {
@@ -448,22 +545,24 @@ function MeetingTab() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Meeting Notes Summarizer</CardTitle>
-        <CardDescription>Paste raw notes — get a structured summary with a validation checklist.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Textarea rows={10} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Paste your meeting notes here…" />
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={submit} disabled={loading}>
-            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Summarize
-          </Button>
-          <Button variant="ghost" onClick={() => setNotes(MEETING_SAMPLE)} disabled={loading}>Sample Input</Button>
-        </div>
-        <OutputPanel text={output} loading={loading} />
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <Card>
+        <CardHeader>
+          <CardTitle>Meeting Notes Summarizer</CardTitle>
+          <CardDescription>Paste raw notes — get a structured summary with a validation checklist.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea rows={10} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Paste your meeting notes here…" />
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={submit} disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Summarize
+            </Button>
+            <Button variant="ghost" onClick={() => setNotes(MEETING_SAMPLE)} disabled={loading}>Sample Input</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <OutputPanel text={output} loading={loading} />
+    </div>
   );
 }
 
@@ -494,46 +593,48 @@ function PlannerTab() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>AI Task Planner</CardTitle>
-        <CardDescription>Turn a messy todo list into a prioritized plan with time blocks.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-1.5">
-          <Label>Today's goal</Label>
-          <Input value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} placeholder="What does success look like today?" />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Tasks (one per line)</Label>
-          <Textarea rows={6} value={form.tasks} onChange={(e) => setForm({ ...form, tasks: e.target.value })} placeholder="- Review PRs&#10;- Write release notes&#10;- Inbox triage" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Task Planner</CardTitle>
+          <CardDescription>Turn a messy todo list into a prioritized plan with time blocks.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Priority preference</Label>
-            <Select value={form.priorityMode} onValueChange={(v) => setForm({ ...form, priorityMode: v as typeof form.priorityMode })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="urgency">Urgency first</SelectItem>
-                <SelectItem value="importance">Importance first</SelectItem>
-                <SelectItem value="balanced">Balanced</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Today&apos;s goal</Label>
+            <Input value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} placeholder="What does success look like today?" />
           </div>
           <div className="space-y-1.5">
-            <Label>Available time: <span className="font-medium text-foreground">{form.availableHours}h</span></Label>
-            <Slider min={1} max={12} step={1} value={[form.availableHours]} onValueChange={([v]) => setForm({ ...form, availableHours: v })} />
+            <Label>Tasks (one per line)</Label>
+            <Textarea rows={6} value={form.tasks} onChange={(e) => setForm({ ...form, tasks: e.target.value })} placeholder="- Review PRs\n- Write release notes\n- Inbox triage" />
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={submit} disabled={loading}>
-            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Build Plan
-          </Button>
-          <Button variant="ghost" onClick={() => setForm(PLANNER_SAMPLE)} disabled={loading}>Sample Input</Button>
-        </div>
-        <OutputPanel text={output} loading={loading} />
-      </CardContent>
-    </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Priority preference</Label>
+              <Select value={form.priorityMode} onValueChange={(v) => setForm({ ...form, priorityMode: v as typeof form.priorityMode })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="urgency">Urgency first</SelectItem>
+                  <SelectItem value="importance">Importance first</SelectItem>
+                  <SelectItem value="balanced">Balanced</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Available time: <span className="font-medium text-foreground">{form.availableHours}h</span></Label>
+              <Slider min={1} max={12} step={1} value={[form.availableHours]} onValueChange={([v]) => setForm({ ...form, availableHours: v })} />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={submit} disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Build Plan
+            </Button>
+            <Button variant="ghost" onClick={() => setForm(PLANNER_SAMPLE)} disabled={loading}>Sample Input</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <OutputPanel text={output} loading={loading} />
+    </div>
   );
 }
 
@@ -558,49 +659,85 @@ function ChatTab() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Workplace Chatbot</CardTitle>
-        <CardDescription>Ask anything about writing, planning, meetings, or workplace communication.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div ref={scrollRef} className="h-[420px] overflow-y-auto rounded-md border border-border bg-secondary/30 p-4 space-y-4">
-          {messages.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center pt-16">
-              Try: "Help me decline a meeting politely" or "Draft a 3-line standup update".
-            </p>
-          )}
-          {messages.map((m) => {
-            const text = m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
-            const isUser = m.role === "user";
-            return (
-              <div key={m.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-                <div className={isUser
-                  ? "max-w-[85%] rounded-2xl bg-primary text-primary-foreground px-4 py-2 text-sm whitespace-pre-wrap"
-                  : "max-w-[85%] text-sm whitespace-pre-wrap text-foreground"}>
-                  {text || (isLoading ? <span className="text-muted-foreground italic">Thinking…</span> : null)}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle>Workplace Chatbot</CardTitle>
+          <CardDescription>Ask anything about writing, planning, meetings, or workplace communication.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div ref={scrollRef} className="h-[420px] overflow-y-auto rounded-md border border-border bg-secondary/30 p-4 space-y-4">
+            {messages.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center pt-16">
+                Try: &quot;Help me decline a meeting politely&quot; or &quot;Draft a 3-line standup update&quot;.
+              </p>
+            )}
+            {messages.map((m) => {
+              const text = m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+              const isUser = m.role === "user";
+              return (
+                <div key={m.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+                  <div className={isUser
+                    ? "max-w-[85%] rounded-2xl bg-primary text-primary-foreground px-4 py-2 text-sm whitespace-pre-wrap"
+                    : "max-w-[85%] text-sm whitespace-pre-wrap text-foreground"}>
+                    {text || (isLoading ? <span className="text-muted-foreground italic">Thinking…</span> : null)}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-          {status === "submitted" && (
-            <div className="text-sm text-muted-foreground italic">Thinking…</div>
-          )}
-        </div>
-        <div className="mt-3 flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
-            placeholder="Ask the assistant…"
-            disabled={isLoading}
-          />
-          <Button onClick={onSend} disabled={isLoading || !input.trim()} className="gap-2">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Send
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+              );
+            })}
+            {status === "submitted" && (
+              <div className="text-sm text-muted-foreground italic">Thinking…</div>
+            )}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+              placeholder="Ask the assistant…"
+              disabled={isLoading}
+            />
+            <Button onClick={onSend} disabled={isLoading || !input.trim()} className="gap-2">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Send
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Quick Prompts</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {[
+              "Help me decline a meeting politely",
+              "Draft a 3-line standup update",
+              "Summarize this email thread",
+              "Prioritize my tasks for today",
+            ].map((prompt) => (
+              <button
+                key={prompt}
+                onClick={() => { setInput(prompt); }}
+                className="w-full text-left text-sm px-3 py-2 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {prompt}
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Tips</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>Be specific about audience and tone for better results.</p>
+            <p>Paste raw notes instead of summaries for meeting help.</p>
+            <p>List tasks one per line for the best planner output.</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
