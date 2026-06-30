@@ -168,6 +168,90 @@ function DocsDialog() {
   );
 }
 
+// ============== Theme Switcher ==============
+type Theme = "light" | "dark" | "hc";
+function ThemeSwitcher() {
+  const [theme, setTheme] = useState<Theme>("light");
+  useEffect(() => {
+    const saved = (localStorage.getItem("theme") as Theme | null) ?? "light";
+    applyTheme(saved);
+    setTheme(saved);
+  }, []);
+  const applyTheme = (t: Theme) => {
+    const root = document.documentElement;
+    root.classList.remove("dark", "hc");
+    if (t === "dark") root.classList.add("dark");
+    if (t === "hc") root.classList.add("hc");
+    localStorage.setItem("theme", t);
+  };
+  const choose = (t: Theme) => { setTheme(t); applyTheme(t); };
+  const opts: { id: Theme; icon: typeof Sun; label: string }[] = [
+    { id: "light", icon: Sun, label: "Light" },
+    { id: "dark", icon: Moon, label: "Dark" },
+    { id: "hc", icon: Contrast, label: "High contrast" },
+  ];
+  return (
+    <div role="group" aria-label="Theme" className="hidden sm:inline-flex items-center rounded-md border border-border bg-card p-0.5">
+      {opts.map((o) => {
+        const active = theme === o.id;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            aria-label={o.label}
+            aria-pressed={active}
+            onClick={() => choose(o.id)}
+            className={`h-7 w-7 grid place-items-center rounded-sm transition-colors ${
+              active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            <o.icon className="h-3.5 w-3.5" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============== Reactions ==============
+function Reactions() {
+  const [picked, setPicked] = useState<string | null>(null);
+  const items: { id: string; icon: typeof ThumbsUp; label: string }[] = [
+    { id: "up", icon: ThumbsUp, label: "Helpful" },
+    { id: "down", icon: ThumbsDown, label: "Not helpful" },
+    { id: "love", icon: Heart, label: "Love it" },
+    { id: "wow", icon: PartyPopper, label: "Brilliant" },
+  ];
+  const onPick = (id: string, label: string) => {
+    setPicked(id);
+    toast.success(`Thanks for the feedback: ${label}`);
+  };
+  return (
+    <div className="flex items-center gap-1.5 pt-3 mt-3 border-t border-border">
+      <span className="text-xs text-muted-foreground mr-1">React:</span>
+      {items.map((it) => {
+        const active = picked === it.id;
+        return (
+          <button
+            key={it.id}
+            type="button"
+            aria-label={it.label}
+            aria-pressed={active}
+            onClick={() => onPick(it.id, it.label)}
+            className={`h-8 w-8 grid place-items-center rounded-full border transition-all ${
+              active
+                ? "border-primary bg-primary/10 text-primary scale-110"
+                : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            <it.icon className="h-4 w-4" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ResponsibleAINotice() {
   return (
     <div className="border-t border-border bg-secondary/40">
@@ -225,7 +309,10 @@ function OutputPanel({ text, loading }: { text: string; loading: boolean }) {
             <Loader2 className="h-4 w-4 animate-spin" /> Generating…
           </div>
         ) : text ? (
-          <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed text-foreground">{text}</pre>
+          <>
+            <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed text-foreground">{text}</pre>
+            <Reactions />
+          </>
         ) : (
           <p className="text-sm text-muted-foreground py-8 text-center">Output will appear here.</p>
         )}
