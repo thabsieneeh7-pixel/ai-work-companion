@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -18,6 +17,11 @@ import { Loader2, Copy, Check, Sparkles, Mail, ClipboardList, CalendarClock, Mes
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { generateEmail, summarizeMeeting, planTasks } from "@/lib/ai.functions";
+import {
+  SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter,
+  SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,54 +36,85 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Toaster richColors position="top-right" />
-      <Header />
-      <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-8">
-        <Tabs defaultValue="email" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto gap-1 bg-secondary/60 p-1">
-            <TabsTrigger value="email" className="data-[state=active]:bg-card gap-2 py-2">
-              <Mail className="h-4 w-4" /> Email
-            </TabsTrigger>
-            <TabsTrigger value="meeting" className="data-[state=active]:bg-card gap-2 py-2">
-              <ClipboardList className="h-4 w-4" /> Meeting
-            </TabsTrigger>
-            <TabsTrigger value="planner" className="data-[state=active]:bg-card gap-2 py-2">
-              <CalendarClock className="h-4 w-4" /> Planner
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="data-[state=active]:bg-card gap-2 py-2">
-              <MessageCircle className="h-4 w-4" /> Chat
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="email" className="mt-6"><EmailTab /></TabsContent>
-          <TabsContent value="meeting" className="mt-6"><MeetingTab /></TabsContent>
-          <TabsContent value="planner" className="mt-6"><PlannerTab /></TabsContent>
-          <TabsContent value="chat" className="mt-6"><ChatTab /></TabsContent>
-        </Tabs>
-      </main>
-      <ResponsibleAINotice />
-      <Footer />
-    </div>
-  );
-}
+  type View = "email" | "meeting" | "planner" | "chat";
+  const [view, setView] = useState<View>("email");
 
-function Header() {
+  const items: { id: View; title: string; icon: typeof Mail; desc: string }[] = [
+    { id: "email", title: "Email Generator", icon: Mail, desc: "Draft a polished email." },
+    { id: "meeting", title: "Meeting Summarizer", icon: ClipboardList, desc: "Turn notes into action items." },
+    { id: "planner", title: "Task Planner", icon: CalendarClock, desc: "Prioritize and time-block your day." },
+    { id: "chat", title: "Workplace Chat", icon: MessageCircle, desc: "Ask anything, get a quick answer." },
+  ];
+  const current = items.find((i) => i.id === view)!;
+
   return (
-    <header className="border-b border-border bg-card/70 backdrop-blur">
-      <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center shadow-sm">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold leading-tight">AI Workplace Productivity Assistant</h1>
-            <p className="text-xs text-muted-foreground">Draft. Summarize. Plan. Responsibly.</p>
-          </div>
+    <SidebarProvider>
+      <Toaster richColors position="top-right" />
+      <div className="min-h-screen flex w-full bg-background">
+        <Sidebar collapsible="icon">
+          <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 shrink-0 rounded-lg bg-primary text-primary-foreground grid place-items-center shadow-[var(--shadow-elegant)]">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+                <p className="text-sm font-semibold leading-tight truncate" style={{ fontFamily: "var(--font-display)" }}>Workplace AI</p>
+                <p className="text-[11px] text-sidebar-foreground/60">Productivity Suite</p>
+              </div>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Tools</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.map((it) => (
+                    <SidebarMenuItem key={it.id}>
+                      <SidebarMenuButton
+                        isActive={view === it.id}
+                        tooltip={it.title}
+                        onClick={() => setView(it.id)}
+                      >
+                        <it.icon className="h-4 w-4" />
+                        <span>{it.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+          <SidebarFooter className="border-t border-sidebar-border p-3">
+            <div className="text-[11px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
+              Powered by Lovable AI · Gemini 3 Flash
+            </div>
+          </SidebarFooter>
+        </Sidebar>
+
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-14 border-b border-border bg-card/70 backdrop-blur flex items-center gap-3 px-4 sticky top-0 z-10">
+            <SidebarTrigger />
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base font-semibold leading-tight truncate">{current.title}</h1>
+              <p className="text-xs text-muted-foreground truncate">{current.desc}</p>
+            </div>
+            <DocsDialog />
+          </header>
+
+          <main className="flex-1 px-4 sm:px-8 py-6 sm:py-10">
+            <div className="mx-auto w-full max-w-3xl">
+              {view === "email" && <EmailTab />}
+              {view === "meeting" && <MeetingTab />}
+              {view === "planner" && <PlannerTab />}
+              {view === "chat" && <ChatTab />}
+            </div>
+          </main>
+
+          <ResponsibleAINotice />
+          <Footer />
         </div>
-        <DocsDialog />
       </div>
-    </header>
+    </SidebarProvider>
   );
 }
 
